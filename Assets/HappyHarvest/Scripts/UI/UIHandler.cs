@@ -187,6 +187,7 @@ namespace HappyHarvest
 
             s_Instance.m_CurrentCursorType = cursorType;
         }
+        
 
         public static void UpdateWeatherIcons(WeatherSystem.WeatherType currentWeather)
         {
@@ -203,7 +204,7 @@ namespace HappyHarvest
         {
             //we hide the weather control if there is no weather sytsem in that scene
             s_Instance.m_SunLabel.parent.style.display =
-                GameManager.Instance.WeatherSystem == null ? DisplayStyle.None : DisplayStyle.Flex;
+            GameManager.Instance.WeatherSystem == null ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
         private void OpenMarket_Internal()

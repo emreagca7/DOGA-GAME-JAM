@@ -4,6 +4,7 @@ using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
+using TMPro; 
 
 namespace HappyHarvest
 {
@@ -33,7 +34,20 @@ namespace HappyHarvest
         }
 
         [Header("Spawn Settings (BUNU INSPECTOR'DAN ATA)")] 
-        public PlayerController PlayerPrefab; // KARAKTER PREFABINI BURAYA SÜRÜKLEYECEKSİN
+        public PlayerController PlayerPrefab;
+
+        [Header("Envanter Sistemi (UI)")]
+        public TextMeshProUGUI letterCountText; 
+        public TextMeshProUGUI candleCountText; 
+        
+        public int LetterCount { get; private set; } 
+        public int CandleCount { get; private set; }
+
+        public int DeliveredLetterCount { get; private set; }
+        // --- YENİ EKLENENLER (OYUN SONU TAKİBİ İÇİN) ---
+        public int LitLightCount { get; private set; } // Yanan ışık sayısı
+        public int TargetCount = 10; // Kazanmak için gereken mektup ve ışık sayısı
+        
 
         public TerrainManager Terrain { get; set; }
         public PlayerController Player { get; set; }
@@ -69,7 +83,6 @@ namespace HappyHarvest
 
         private void Awake()
         {
-            // SINGLETON KORUMASI: Çift GameManager oluşmasını engeller
             if (s_Instance != null && s_Instance != this)
             {
                 Destroy(this.gameObject);
@@ -77,7 +90,6 @@ namespace HappyHarvest
             }
 
             s_Instance = this;
-            DontDestroyOnLoad(gameObject);
             
             m_IsTicking = true;
             
@@ -91,13 +103,16 @@ namespace HappyHarvest
             if (DayDurationInSeconds <= 0.0f)
             {
                 DayDurationInSeconds = 1.0f;
-                Debug.LogError("The day length on the GameManager is set to 0, the length need to be set to a positive value");
             }
         }
 
         private void Start()
         {
             m_CurrentTimeOfTheDay = StartingTime;
+            
+            LetterCount = 0;
+            CandleCount = 0;
+            UpdateInventoryUI();
             
             UIHandler.SceneLoaded();
         }
@@ -145,6 +160,81 @@ namespace HappyHarvest
             }
         }
 
+        public void AddRewards(int letterAmount, int candleAmount)
+        {
+            LetterCount += letterAmount;
+            CandleCount += candleAmount;
+            
+            UpdateInventoryUI();
+            Player?.UpdateCandleVisual(); // Oyuncunun elindeki mumu güncelle
+        }
+
+        public bool UseCandle()
+        {
+            if (CandleCount > 0)
+            {
+                CandleCount--;
+                UpdateInventoryUI();
+                Player?.UpdateCandleVisual(); // Mumu harcadıktan sonra elindeki görseli güncelle
+                return true;
+            }
+            return false;
+        }
+
+        // YENİ FONKSİYON: Eldeki mektupları sandığa atar
+        public int DepositLetters()
+        {
+            int amount = LetterCount;
+            if (amount > 0)
+            {
+                DeliveredLetterCount += amount; 
+                LetterCount = 0; 
+                UpdateInventoryUI(); 
+                
+                CheckWinCondition(); // Sandığa her mektup atıldığında kazanıp kazanmadığını kontrol et
+                
+                return amount; 
+            }
+            return 0;
+        }
+
+        public void LightTurnedOn()
+        {
+            LitLightCount++;
+            CheckWinCondition(); // Lamba her yandığında kazanıp kazanmadığını kontrol et
+        }
+
+        // Kazanma şartlarının sağlanıp sağlanmadığına bakar
+        private void CheckWinCondition()
+        {
+            // Eğer 10 mektup teslim edildiyse VE 10 ışık yandıysa OYUN BİTER
+            if (DeliveredLetterCount >= TargetCount && LitLightCount >= TargetCount)
+            {
+                Debug.Log("KAZANDIN! Tüm şartlar sağlandı. Final ekranı geliyor...");
+                
+                // Oyuncu sandığa atma yazısını (floating text) okuyabilsin diye final ekranını 2.5 saniye gecikmeli açıyoruz
+                Invoke(nameof(TriggerEndGame), 2.5f);
+            }
+        }
+
+        // Gecikmeli olarak final mektubunu çağıran yardımcı fonksiyon
+        private void TriggerEndGame()
+        {
+            if (LetterManager.Instance != null)
+            {
+                LetterManager.Instance.ShowEndGameLetter();
+            }
+        }
+
+        private void UpdateInventoryUI()
+        {
+            if (letterCountText != null)
+                letterCountText.text = LetterCount.ToString();
+                
+            if (candleCountText != null)
+                candleCountText.text = CandleCount.ToString();
+        }
+
         public void Pause()
         {
             m_IsTicking = false;
@@ -159,17 +249,31 @@ namespace HappyHarvest
 
         public void RegisterSpawn(SpawnPoint spawn)
         {
-            if (Player == null && spawn.SpawnIndex == 0)
+            // KAMERA SORUNUNUN ÇÖZÜMÜ: Oyuncu null olmasa bile bu blok çalışmalı
+            if (spawn.SpawnIndex == 0)
             { 
-                // YENİ SPAWN SİSTEMİ: Resources klasörü yerine Inspector referansını kullanır
-                if (PlayerPrefab != null)
+                if (Player == null)
                 {
-                    Instantiate(PlayerPrefab);
-                    spawn.SpawnHere();
+                    PlayerController scenePlayer = FindObjectOfType<PlayerController>();
+                    
+                    if (scenePlayer != null)
+                    {
+                        Player = scenePlayer; 
+                    }
+                    else if (PlayerPrefab != null) 
+                    {
+                        Player = Instantiate(PlayerPrefab);
+                    }
+                    else
+                    {
+                        Debug.LogError("KARAKTER DOĞAMADI! GameManager içindeki PlayerPrefab alanına karakterini sürüklemedin.");
+                    }
                 }
-                else
+
+                // Kamera ayarlarının yapılması için SpawnHere() mutlaka çağrılmalı
+                if (Player != null)
                 {
-                    Debug.LogError("KARAKTER DOĞAMADI! GameManager içindeki PlayerPrefab alanına karakterini sürüklemedin.");
+                    spawn.SpawnHere(); 
                 }
             }
             

@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4493c88cc101a542a078438cf2c943c, type: 3}
+  m_Name: Questions 8
+  m_EditorClassIdentifier: Assembly-CSharp::HappyHarvest.QuestionData
+  questionText: "Dede Korkut'ta h\xFCk\xFCmdar\u0131n halk\u0131na yemek da\u011F\u0131tma
+    gelene\u011Fi hangisidir?"
+  answers:
+  - "Han-\u0131 Ya\u011Fma"
+  - Toy Gecesi
+  - "Ulu\u015F"
+  - "\u015E\xF6len"
+  correctAnswerIndex: 0

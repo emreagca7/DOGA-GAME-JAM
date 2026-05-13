@@ -12,11 +12,14 @@ namespace HappyHarvest
         public InputActionAsset InputAction;
         public float Speed = 4.0f;
 
-        // Inspector'dan kaldırdık, kod içinde otomatik bulunacak
-        private LeanJoystick MovementJoystick; 
+        [Header("Mobile UI (BUNU INSPECTOR'DAN ATA!)")]
+        public LeanJoystick MovementJoystick; 
 
         public SpriteRenderer Target;
         public Transform ItemAttachBone;
+
+        [Header("Visuals (BUNU INSPECTOR'DAN ATA)")]
+        public GameObject HandCandleVisual; 
 
         public int Coins
         {
@@ -70,12 +73,6 @@ namespace HappyHarvest
 
         void Awake()
         {
-            if (GameManager.Instance.Player != null)
-            {
-                Destroy(gameObject);
-                return;
-            }
-            
             m_Rigidbody = GetComponent<Rigidbody2D>();
             m_Animator = GetComponentInChildren<Animator>();
             m_TargetMarker = Target.GetComponent<TargetMarker>();
@@ -83,20 +80,14 @@ namespace HappyHarvest
             
             gameObject.transform.SetParent(null);
             
-            GameManager.Instance.Player = this;
-            DontDestroyOnLoad(gameObject);
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.Player = this;
+            }
         }
         
         void Start()
         {
-            // OYUN BAŞLADIĞINDA JOYSTICK'İ OTOMATİK BULUR
-            MovementJoystick = FindObjectOfType<LeanJoystick>();
-            
-            if (MovementJoystick == null)
-            {
-                Debug.LogWarning("Sahnedeki Canvas içinde LeanJoystick bulunamadı!");
-            }
-
             m_MoveAction = InputAction.FindAction("Gameplay/Move");
             m_MoveAction.Enable();
 
@@ -147,14 +138,17 @@ namespace HappyHarvest
             
             if (!IsMouseOverGameWindow())
             {
-                UIHandler.ChangeCursor(UIHandler.CursorType.System);
+                SafeChangeCursor(UIHandler.CursorType.System);
                 return;
             }
 
-            if (!m_CanControl || m_IsOverUI)
+            if (!m_CanControl)
             {
-                if (m_IsOverUI) UIHandler.ChangeCursor(UIHandler.CursorType.Interact);
                 return;
+            }
+            if (m_IsOverUI) 
+            {
+                SafeChangeCursor(UIHandler.CursorType.Interact);
             }
             
             m_CurrentWorldMousePos = Camera.main.ScreenToWorldPoint(Mouse.current.position.ReadValue());
@@ -164,11 +158,11 @@ namespace HappyHarvest
             {
                 m_CurrentInteractiveTarget = overlapCol.GetComponent<InteractiveObject>();
                 m_HasTarget = false;
-                UIHandler.ChangeCursor(UIHandler.CursorType.Interact);
+                SafeChangeCursor(UIHandler.CursorType.Interact);
                 return;
             }
           
-            UIHandler.ChangeCursor(UIHandler.CursorType.Normal);
+            SafeChangeCursor(UIHandler.CursorType.Normal);
 
             var grid = GameManager.Instance.Terrain?.Grid;
 
@@ -217,6 +211,36 @@ namespace HappyHarvest
             }
         }
 
+        // --- YENİ EKLENEN KORUMA KALKANI FONKSİYONU ---
+        // NullReferenceException hatasını yutarak oyunun çökmesini engeller
+        private void SafeChangeCursor(UIHandler.CursorType cursorType)
+        {
+            try
+            {
+                UIHandler.ChangeCursor(cursorType);
+            }
+            catch (System.Exception)
+            {
+                // Hata görmezden geliniyor. 
+                // Oyun cursor değiştiremese bile tıkır tıkır çalışmaya devam edecek.
+            }
+        }
+
+        public void UpdateCandleVisual()
+        {
+            if (HandCandleVisual != null)
+            {
+                bool hasCandle = GameManager.Instance.CandleCount > 0;
+                HandCandleVisual.SetActive(hasCandle);
+                
+                Debug.Log("<color=green>Mum Görseli Güncellendi. Görünürlük: " + hasCandle + "</color>");
+            }
+            else
+            {
+                Debug.LogWarning("<color=red>DİKKAT: PlayerController içindeki Hand Candle Visual atanmamış!</color>");
+            }
+        }
+
         void UseObject()
         {
             if(m_IsOverUI)
@@ -237,14 +261,12 @@ namespace HappyHarvest
         {
             Vector2 move = Vector2.zero;
 
-            // Joystick referansı boş değilse ve kullanılıyorsa oradan al
             if (MovementJoystick != null && MovementJoystick.ScaledValue != Vector2.zero)
             {
                 move = MovementJoystick.ScaledValue;
             }
             else
             {
-                // Değilse klavyeden (WASD) al
                 move = m_MoveAction.ReadValue<Vector2>();
             }
 

@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4493c88cc101a542a078438cf2c943c, type: 3}
+  m_Name: Questions 7
+  m_EditorClassIdentifier: Assembly-CSharp::HappyHarvest.QuestionData
+  questionText: "T\xFCrk m\xFCzi\u011Finde enstr\xFCmanla yap\u0131lan do\u011Fa\xE7lama
+    haz\u0131rl\u0131k icras\u0131na ne denir?"
+  answers:
+  - "Pe\u015Frev"
+  - Taksim
+  - Semai
+  - "Nak\u0131\u015F"
+  correctAnswerIndex: 1
